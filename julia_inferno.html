@@ -1,0 +1,114 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Julia Set with Inferno Colormap</title>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin-top: 10px;
+    }
+    .slider-container {
+      margin: 15px auto;
+      width: 80%;
+    }
+  </style>
+</head>
+<body>
+  <h1>Julia Set</h1>
+
+  <div class="slider-container">
+    <label for="reSlider">Real part of c: <span id="reVal">-0.7</span></label><br>
+    <input type="range" id="reSlider" min="-1" max="1" step="0.01" value="-0.7">
+  </div>
+
+  <div class="slider-container">
+    <label for="imSlider">Imaginary part of c: <span id="imVal">0.27015</span></label><br>
+    <input type="range" id="imSlider" min="-1" max="1" step="0.01" value="0.27015">
+  </div>
+
+  <canvas id="juliaCanvas" width="600" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById('juliaCanvas');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    const maxIter = 200;
+    const zoom = 1.5;
+
+    const reSlider = document.getElementById('reSlider');
+    const imSlider = document.getElementById('imSlider');
+    const reVal = document.getElementById('reVal');
+    const imVal = document.getElementById('imVal');
+
+    // Inferno colormap (256 values, downsampled for performance)
+    const inferno = [
+      [0, 0, 4], [31, 12, 72], [85, 15, 109], [136, 34, 106], [186, 54, 85],
+      [227, 89, 51], [249, 140, 10], [252, 194, 48], [249, 248, 164], [252, 255, 236]
+    ];
+
+    function getColor(val) {
+      const t = val / maxIter;
+      const idx = Math.floor(t * (inferno.length - 1));
+      const c1 = inferno[idx];
+      const c2 = inferno[Math.min(idx + 1, inferno.length - 1)];
+      const blend = (t * (inferno.length - 1)) - idx;
+      const r = Math.round(c1[0] + (c2[0] - c1[0]) * blend);
+      const g = Math.round(c1[1] + (c2[1] - c1[1]) * blend);
+      const b = Math.round(c1[2] + (c2[2] - c1[2]) * blend);
+      return [r, g, b];
+    }
+
+    function drawJulia(cRe, cIm) {
+      const imageData = ctx.createImageData(width, height);
+      const data = imageData.data;
+
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          let zx = (x - width / 2) / (width / 2) * zoom;
+          let zy = (y - height / 2) / (height / 2) * zoom;
+          let i = 0;
+
+          while (zx * zx + zy * zy < 4 && i < maxIter) {
+            let tmp = zx * zx - zy * zy + cRe;
+            zy = 2 * zx * zy + cIm;
+            zx = tmp;
+            i++;
+          }
+
+          const [r, g, b] = getColor(i);
+          const pixelIndex = 4 * (y * width + x);
+          data[pixelIndex] = r;
+          data[pixelIndex + 1] = g;
+          data[pixelIndex + 2] = b;
+          data[pixelIndex + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function update() {
+      const cRe = parseFloat(reSlider.value);
+      const cIm = parseFloat(imSlider.value);
+      reVal.textContent = cRe;
+      imVal.textContent = cIm;
+      drawJulia(cRe, cIm);
+    }
+
+    reSlider.addEventListener('input', update);
+    imSlider.addEventListener('input', update);
+
+    update();
+  </script>
+</body>
+</html>
